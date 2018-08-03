@@ -9,7 +9,7 @@ function New-OrgBackupReport
     {
         $protectedVms = 0
         $usedSpace = 0
-    
+
         $vcdOrg = New-Object -TypeName Veeam.Backup.Model.CVcdOrganization `
             -ArgumentList $item.VcdId, $item.VcdRef, $item.Name
         $orgQuotaId = [Veeam.Backup.Core.CJobQuota]::FindByOrganization($vcdOrg).Id
@@ -17,16 +17,14 @@ function New-OrgBackupReport
         foreach ($backupId in $orgBackupIds)
         {
             $backup = [Veeam.Backup.Core.CBackup]::Get($backupId)
-            
             $protectedVms += ($backup.GetObjects() | Where-Object -FilterScript {$_.Type -eq "VM"}).Length
-            
             $sizePerStorage = $backup.GetAllStorages().Stats.BackupSize
             foreach ($size in $sizePerStorage)
             {
                 $usedSpace += $size
             }
         }
-    
+
         $orgReport = [PSCustomObject]@{
             orgName = $vcdOrg.OrgName;
             protectedVms = $protectedVms;

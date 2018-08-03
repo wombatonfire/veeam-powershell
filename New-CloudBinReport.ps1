@@ -1,4 +1,4 @@
-Add-PSSnapin veeampssnapin
+Add-PSSnapin -Name VeeamPSSnapin
 
 function New-CloudBinReport
 {
@@ -16,7 +16,7 @@ function New-CloudBinReport
             )
             $repoAccessor = [Veeam.Backup.Core.CRepositoryAccessorFactory]::Create($tenantQuota.CachedRepository)
             $binSize = $repoAccessor.FileCommander.GetDirSize($binPath)
-            
+
             $tenantReport = [PSCustomObject]@{
                 tenantName = $tenant.Name
                 binSize = $binSize
@@ -24,7 +24,7 @@ function New-CloudBinReport
             $report.Add($tenantReport)
         }
     }
-    
+
     return $report
 }
 
