@@ -10,12 +10,30 @@ function New-CloudBinReport
         if ($tenant.ResourcesEnabled)
         {
             $tenantQuota = [Veeam.Backup.Core.CTenantQuota]::DbFindByTenantId($tenant.Id)
-            $binPath = [Veeam.Backup.Model.SPathConverter]::RepositoryPathToString(
-                $tenantQuota.AbsoluteRecycleBinPath,
-                $tenantQuota.CachedRepository.Type
-            )
-            $repoAccessor = [Veeam.Backup.Core.CRepositoryAccessorFactory]::Create($tenantQuota.CachedRepository)
-            $binSize = $repoAccessor.FileCommander.GetDirSize($binPath)
+            if ($tenantQuota.CachedRepository.Type -eq "ExtendableRepository")
+            {
+                $binSize = 0
+
+                $extents = $tenantQuota.CachedRepository.GetExtents()
+                foreach ($extent in $extents)
+                {
+                    $binPath = [Veeam.Backup.Model.SPathConverter]::RepositoryPathToString(
+                        $extent.FullPath.Combine($tenantQuota.AbsoluteRecycleBinPath),
+                        $extent.Type
+                    )
+                    $repoAccessor = [Veeam.Backup.Core.CRepositoryAccessorFactory]::Create($extent)
+                    $binSize += $repoAccessor.FileCommander.GetDirSize($binPath)
+                }
+            }
+            else
+            {
+                $binPath = [Veeam.Backup.Model.SPathConverter]::RepositoryPathToString(
+                    $tenantQuota.AbsoluteRecycleBinPath,
+                    $tenantQuota.CachedRepository.Type
+                )
+                $repoAccessor = [Veeam.Backup.Core.CRepositoryAccessorFactory]::Create($tenantQuota.CachedRepository)
+                $binSize = $repoAccessor.FileCommander.GetDirSize($binPath)
+            }
 
             $tenantReport = [PSCustomObject]@{
                 tenantName = $tenant.Name
