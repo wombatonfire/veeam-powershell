@@ -23,6 +23,7 @@ function Get-AccessToken
         [Parameter(Mandatory=$true)]
         [string]
         $Server,
+
         [string]
         $Port = "4443",
 
@@ -34,6 +35,7 @@ function Get-AccessToken
         [string]
         $Password
     )
+
     $uri = "https://${Server}:$Port/v2/token"
     $requestBody = "grant_type=password&username=$Username&password=$Password"
     $response = Invoke-RestMethod -Uri $uri -Method Post -Body $requestBody
@@ -95,6 +97,7 @@ function Get-RestoreSessions
         [string]
         $Operator
     )
+
     $restoreSessions = New-Object -TypeName System.Collections.Generic.List[PSCustomObject]
 
     $response = Get-Resource -Server $Server -Port $Port -Resource "/RestoreSessions" -AccessToken $AccessToken
@@ -124,6 +127,7 @@ function Get-RestoreSessions
     {
         $restoreSessions = $restoreSessions | Where-Object -FilterScript {$_.initiatedBy -eq $Operator}
     }
+
     return $restoreSessions | Sort-Object -Property creationTime
 }
 
@@ -149,6 +153,7 @@ function Get-RestoreSessionEvents
     )
 
     $sessionEvents = New-Object -TypeName System.Collections.Generic.List[PSCustomObject]
+
     $response = Get-Resource -Server $Server -Port $Port -Resource "/RestoreSessions/$SessionId/Events" `
         -AccessToken $AccessToken
     $sessionEvents.AddRange([System.Collections.Generic.List[PSCustomObject]]$response.results)
@@ -188,6 +193,7 @@ function ConvertFrom-EventMessageString
         source = [regex]::Match($EventMessage, $sourcePattern);
         target = [regex]::Match($EventMessage, $targetPattern)
     }
+
     return $itemDetails
 }
 
