@@ -1,5 +1,7 @@
 # veeam-powershell
+PowerShell scripts for Veeam Backup &amp; Replication and Veeam Backup for Microsoft Office 365
 
+## Scripts for Veeam Backup &amp; Replication
 
 ### New-CloudBinReport.ps1
 The script generates a report for Cloud Connect Backup tenants, showing the size of the deleted backups in a recycle bin.
@@ -39,6 +41,11 @@ The script is implemented in PowerShell, but it uses REST API for interacting wi
 
 1. Specify the values for the following variables in the script:
 
+* `$vboServer` - address of the backup server;
+* `$vboPort` (default value is provided);
+* `$username` - user account with access rights to the backup server;
+* `$password`;
+* `$reportPath` - path to the csv file with a report.
 
 2. Save the script.
 3. Run the script from the PowerShell console, providing optional `-DateRange` and/or `-Operator` parameters if needed.
