@@ -18,7 +18,9 @@ function New-CloudBinReport
                 foreach ($extent in $extents)
                 {
                     $binPath = [Veeam.Backup.Model.SPathConverter]::RepositoryPathToString(
-                        $extent.FullPath.Combine($tenantQuota.AbsoluteRecycleBinPath),
+                        $extent.FullPath.Combine(
+                            [Veeam.Backup.Common.CPartialPath]$tenantQuota.AbsoluteRecycleBinPath
+                        ),
                         $extent.Type
                     )
                     $repoAccessor = [Veeam.Backup.Core.CRepositoryAccessorFactory]::Create($extent)
@@ -36,7 +38,7 @@ function New-CloudBinReport
             }
 
             $tenantReport = [PSCustomObject]@{
-                tenantName = $tenant.Name
+                tenantName = $tenant.Name;
                 binSize = $binSize
             }
             $report.Add($tenantReport)
