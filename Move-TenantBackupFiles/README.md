@@ -22,12 +22,12 @@ Target extent is selected by the administrator, providing a way to rebalance the
 3. Use the interactive command-line interface to select which backup files to move and where to move them.
 4. Monitor the progress of the job in the VB&R console > HISTORY > Orchestrated Tasks.
 
-### Implementation details
+### Details
 
-1. Tenant will not be disabled if he has active jobs.
-2. Backup files will not be moved if the target extent has insufficient free space at the time the script is executed.
-3. Backup files are moved between extents using Veeam Agents, thus all repository types should be supported. The script was tested with Windows and Linux repositories in different configurations. Please report if you have extents on EMC Data Domain or HP StoreOnce and it works with them.
-4. Inside a single job, backup files are processed sequentially. Multiple jobs for different tenants or same tenant on different extents can run at the same time.
-5. Source backup files are deleted from the source extent only if all the storage files and backup metadata in a specific folder were successfully copied to the target extent.
-6. Tenant will not be enabled if the job terminates with an error. In such case the script should be executed again and the job should be restarted.
-7. After all backup files are successfully copied, a scale-out repository is rescanned and the tenant is reenabled.
+- Tenant will not be disabled if he has active jobs.
+- Backup files will not be moved if the target extent has insufficient free space at the time the script is executed.
+- Backup files are moved between extents using Veeam agents (VB&R components, not backup agents), thus all repository types should be supported. The script was tested with Windows and Linux repositories in different configurations. Please report if you have extents on EMC Data Domain or HP StoreOnce, and how the script works with them.
+- Inside a single job, backup files are processed sequentially. Multiple jobs for different tenants or same tenant on different extents can run at the same time.
+- Source backup files are deleted from the source extent only if all the storage files and backup metadata in a specific folder were successfully copied to the target extent. If the job fails on copy, the script should be executed again and the job has to be restarted.
+- Tenant will not be reenabled if the job terminates with an error. In such case, the script should be executed again and the job has to be restarted.
+- After all backup files are successfully copied, a scale-out repository is rescanned and the tenant is reenabled.
