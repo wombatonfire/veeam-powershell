@@ -67,6 +67,10 @@ function Copy-StorageFiles
     )
     $transferFileMethod = $cloudBinEvacuatorType.GetDeclaredMethod('TransferFile')
 
+    $enableIntegrityStreams = [Veeam.Backup.Core.SVirtualSyntheticRepository]::IsVirtualSyntheticAvailableOnRepository(
+        $TargetExtentAccessor.Repository
+    )
+
     foreach ($file in $Files)
     {
         $sourceFilePath = [Veeam.Backup.Common.CFullPath]::FromString(
@@ -78,7 +82,7 @@ function Copy-StorageFiles
         {
             $transferFileMethod.Invoke(
                 $cloudBinEvacuator,
-                @($sourceFilePath, $SourceExtentAccessor, $TargetExtentAccessor, $false)
+                @($sourceFilePath, $SourceExtentAccessor, $TargetExtentAccessor, $enableIntegrityStreams)
             )
         }
         catch
