@@ -1,6 +1,8 @@
 ## Move-TenantBackupFiles.ps1
 The script allows to move backup files of individual Cloud Connect tenants between extents of a scale-out repository, without the need to put the whole extent to the maintenance mode.
 
+> **WARNING: THE SCRIPT IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED. THE SCRIPT IS NOT SUPPORTED BY VEEAM TECHNICAL SUPPORT. USE AT YOUR OWN RISK. PERFORM CONFIGURATION BACKUP BEFORE EXECUTING THE SCRIPT.**
+
 Scale-out backup repository supports backup evacuation from one extent to another. While being a useful feature, backup evacuation has several serious limitations, which affect its adoption:
 
 - Source extent should be in the maintenance mode.
@@ -31,3 +33,7 @@ Target extent is selected by the administrator, providing a way to rebalance the
 - Source backup files are deleted from the source extent only if all the storage files and backup metadata in a specific folder were successfully copied to the target extent. If the job fails on copy, the script should be executed again and the job has to be restarted.
 - Tenant will not be reenabled if the job terminates with an error. In such case, the script should be executed again and the job has to be restarted.
 - After all backup files are successfully copied, a scale-out repository is rescanned and the tenant is reenabled.
+
+### Known issues
+
+- Script fails on tenants with subtenants. This happens because of the differences in folder structure on the repository for tenants with and without subtenants. Currently, there is no workaround. Support for tenants with subtenants will be added in the next version.
