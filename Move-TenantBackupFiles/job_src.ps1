@@ -22,6 +22,38 @@
 
 Add-PSSnapin -Name VeeamPSSnapin
 
+function Group-BackupFilesByType
+{
+    [CmdletBinding()]
+
+    param(
+        [Parameter(Mandatory=$true)]
+        [System.Collections.Generic.List[Veeam.Backup.Common.CFsItemInfo]]
+        $Files
+    )
+
+    $storageFiles = New-Object -TypeName System.Collections.Generic.List[Veeam.Backup.Common.CFsItemInfo]
+    $metaFile = $null
+    
+    foreach ($file in $Files)
+    {
+        if ($file.Name.EndsWith("vbm"))
+        {
+            $metaFile = $file
+        }
+        else
+        {
+            $storageFiles.Add($file)
+        }
+    }
+
+    $backupFiles = @{
+        storageFiles = $storageFiles;
+        metaFile = $metaFile
+    }
+    return $backupFiles
+}
+
 function Copy-StorageFiles
 {
     [CmdletBinding()]
@@ -36,7 +68,7 @@ function Copy-StorageFiles
         $SourceExtentAccessor,
 
         [Parameter(Mandatory=$true)]
-        [System.Collections.Generic.List[string]]
+        [System.Collections.Generic.List[Veeam.Backup.Common.CFsItemInfo]]
         $Files,
 
         [Parameter(Mandatory=$true)]
@@ -74,7 +106,7 @@ function Copy-StorageFiles
     foreach ($file in $Files)
     {
         $sourceFilePath = [Veeam.Backup.Common.CFullPath]::FromString(
-            $file,
+            $file.FullName,
             $SourceExtentAccessor.FileCommander,
             $true
         )
@@ -87,10 +119,10 @@ function Copy-StorageFiles
         }
         catch
         {
-            throw "Could not copy [$($sourceFilePath.Elements[-1])]."
+            throw "Could not copy [$($file.Name)]."
         }
         
-        Write-Host -Object "[$($sourceFilePath.Elements[-1])] has been copied."
+        Write-Host -Object "[$($file.Name)] has been copied."
     }
 }
 
@@ -156,6 +188,28 @@ function Copy-Metadata
     Write-Host -Object "Backup metadata has been copied."
 }
 
+function Remove-SourceBackupFiles
+{
+    [CmdletBinding()]
+
+    param(
+        [Parameter(Mandatory=$true)]
+        [hashtable]
+        $Files,
+
+        [Parameter(Mandatory=$true)]
+        [Veeam.Backup.Core.CRepositoryAccessor]
+        $SourceExtentAccessor
+    )
+
+    foreach ($file in $Files.storageFiles)
+    {
+        $SourceExtentAccessor.FileCommander.DeleteFile($file.FullName)
+    }
+    $SourceExtentAccessor.FileCommander.DeleteFile($Files.metaFile.FullName)
+    Write-Host -Object "Source backup files have been deleted."
+}
+
 [Veeam.Backup.Core.CCredentilasStroreInitializer]::InitLocal()
 
 $sobr = [Veeam.Backup.Core.CBackupRepository]::Get([guid]$SobrId)
@@ -167,45 +221,89 @@ $targetExtentAccessor = [Veeam.Backup.Core.CRepositoryAccessorFactory]::Create($
 
 $tenantFolderPath = [Veeam.Backup.Core.CFileCommanderHelper]::CombinePath($sourceExtent.FriendlyPath, $TenantFolder)
 
+$subtenantFolders = New-Object -TypeName System.Collections.Generic.List[Veeam.Backup.Common.CFsItemInfo]
+
 foreach ($folder in $sourceExtentAccessor.FileCommander.EnumItems($tenantFolderPath))
 {
     if ($sourceExtentAccessor.FileCommander.GetDirSize($folder.FullName))
     {
-        Write-Host -Object "Started processing backup files in [$($folder.Name)]."
-        
-        $storageFiles = New-Object -TypeName System.Collections.Generic.List[string]
-        $sourceMetaFile = $null
-        
-        foreach ($file in $sourceExtentAccessor.FileCommander.EnumItems($folder.FullName))
+        if ($folder.Name -eq "Users")
         {
-            if ($file.Name.EndsWith("vbm"))
+            $tenantId = ([Veeam.Backup.Core.CCloudTenant]::GetAll() |
+                Where-Object -FilterScript {$_.Name -eq $TenantName}).Id
+            $subtenants = [array][Veeam.Backup.Core.CCloudSubtenant]::DbFindByTenantId($tenantId)
+            if ($subtenants)
             {
-                $sourceMetaFile = $file
-            }
-            else
-            {
-                $storageFiles.Add($file.FullName)
+                foreach ($item in $sourceExtentAccessor.FileCommander.EnumItems($folder.FullName))
+                {
+                    if ($item.IsDirectory)
+                    {
+                        $subtenantFolders.Add($item)
+                    }
+                }
+
+                continue
             }
         }
         
-        Copy-StorageFiles -Sobr $sobr -SourceExtentAccessor $sourceExtentAccessor -Files $storageFiles `
+        $backupFiles = $sourceExtentAccessor.FileCommander.EnumItems($folder.FullName)
+        $backupFiles = Group-BackupFilesByType -Files $backupFiles
+
+        Write-Host -Object "Started processing backup files in [$($folder.Name)]."
+
+        Copy-StorageFiles -Sobr $sobr -SourceExtentAccessor $sourceExtentAccessor -Files $backupFiles.storageFiles `
             -TargetExtentAccessor $targetExtentAccessor
         
         $targetMetaFilePath = [Veeam.Backup.Core.CFileCommanderHelper]::CombinePath(
             $targetExtent.FriendlyPath,
             $TenantFolder,
             $folder.Name,
-            $sourceMetaFile.Name
+            $backupFiles.metaFile.Name
         )
-        Copy-Metadata -SourceExtentAccessor $sourceExtentAccessor -SourceFilePath $sourceMetaFile.FullName `
+        Copy-Metadata -SourceExtentAccessor $sourceExtentAccessor -SourceFilePath $backupFiles.metaFile.FullName `
             -TargetExtentAccessor $targetExtentAccessor -TargetFilePath $targetMetaFilePath
         
-        foreach ($file in $storageFiles)
+        Remove-SourceBackupFiles -Files $backupFiles -SourceExtentAccessor $sourceExtentAccessor
+    }
+}
+
+if ($subtenantFolders)
+{
+    foreach ($subtenantFolder in $subtenantFolders)
+    {
+        if ($sourceExtentAccessor.FileCommander.GetDirSize($subtenantFolder.FullName))
         {
-            $sourceExtentAccessor.FileCommander.DeleteFile($file)
+            foreach ($backupFolder in $sourceExtentAccessor.FileCommander.EnumItems($subtenantFolder.FullName))
+            {
+                if ($sourceExtentAccessor.FileCommander.GetDirSize($backupFolder.FullName))
+                {
+                    $backupFiles = $sourceExtentAccessor.FileCommander.EnumItems($backupFolder.FullName)
+                    $backupFiles = Group-BackupFilesByType -Files $backupFiles
+
+                    $logMessage = "Started processing backup files in [{0}] > [{1}]." -f
+                        $subtenantFolder.Name,
+                        $backupFolder.Name
+                    Write-Host -Object $logMessage
+
+                    Copy-StorageFiles -Sobr $sobr -SourceExtentAccessor $sourceExtentAccessor `
+                        -Files $backupFiles.storageFiles -TargetExtentAccessor $targetExtentAccessor
+                
+                    $targetMetaFilePath = [Veeam.Backup.Core.CFileCommanderHelper]::CombinePath(
+                        $targetExtent.FriendlyPath,
+                        $TenantFolder,
+                        "Users",
+                        $subtenantFolder.Name,
+                        $backupFolder.Name,
+                        $backupFiles.metaFile.Name
+                    )
+                    Copy-Metadata -SourceExtentAccessor $sourceExtentAccessor `
+                        -SourceFilePath $backupFiles.metaFile.FullName -TargetExtentAccessor $targetExtentAccessor `
+                        -TargetFilePath $targetMetaFilePath
+                    
+                    Remove-SourceBackupFiles -Files $backupFiles -SourceExtentAccessor $sourceExtentAccessor
+                }
+            }
         }
-        $sourceExtentAccessor.FileCommander.DeleteFile($sourceMetaFile.FullName)
-        Write-Host -Object "Source backup files have been deleted."
     }
 }
 

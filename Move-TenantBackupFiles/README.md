@@ -36,4 +36,4 @@ Target extent is selected by the administrator, providing a way to rebalance the
 
 ### Known issues
 
-- Script fails on tenants with subtenants. This happens because of the differences in folder structure on the repository for tenants with and without subtenants. Currently, there is no workaround. Support for tenants with subtenants will be added in the next version.
+- If a tenant has a Cloud Connect backup job, named "Users", and subtenants are later created for the tenant, then a "Users" subfolder in the tenant folder on the repository will contain backup files for the job as well as subtenant folders. This breaks repository rescan, because the rescan process does not expect subfolders in a folder with backup files. In this case, if we move the backup files for the "Users" job, the job will start to fail. To prevent job failure in such scenario, the backup files in the "Users" folder will not be moved. Only the subtenant folders will be processed.
