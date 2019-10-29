@@ -18,7 +18,7 @@ The backup scope of the report is customizable. It can be limited to the self-se
 
 ### Details
 
-The central part of the script is the `New-OrgBackupReport` function. By default it's called without parameters, which creates a report for self-service backups with aggregation on the organization level.
+The central part of the script is the `New-OrgBackupReport` function. By default, it's called without parameters, which creates a report for self-service backups with aggregation on the organization level.
 
 To change the aggregation level and/or backup scope of the report, two additional parameters can be provided for the `New-OrgBackupReport` function:
 
@@ -27,7 +27,7 @@ To change the aggregation level and/or backup scope of the report, two additiona
 
 `-AggregateByOrgVdc` and `-IncludeAllVcdBackups` parameters are independent and can be used together or on their own.
 
-**IMPORTANT**: `-AggregateByOrgVdc` and `-IncludeAllVcdBackups` parameters REQUIRE the backups to be stored in per-VM backup files ("Use per-VM backup files" option in advanced settings of a backup repository). This is bacause the size of the backups is calculated using backup files, and, when a backup file contains several VMs from different organizations/vDCs, it's impossible to reliably attribute per-VM consumption to the correct organization/vDC.
+**IMPORTANT**: `-AggregateByOrgVdc` and `-IncludeAllVcdBackups` parameters REQUIRE the backups to be stored in per-VM backup files ("Use per-VM backup files" option in advanced settings of a backup repository). This is because the size of the backups is calculated using backup files, and, when a backup file contains several VMs from different organizations/vDCs, it's impossible to reliably attribute per-VM consumption to the correct organization/vDC.
 
 The `usedSpace` column in the report is in bytes. You might want to convert it to GB or TB. This can be achieved by using `Select-Object` cmdlet between `New-OrgBackupReport` and `Export-Csv` on the last line of the script, e.g.:
 
