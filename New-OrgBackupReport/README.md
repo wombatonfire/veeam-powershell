@@ -42,7 +42,7 @@ New-OrgBackupReport | Select-Object -Property @{Expression={$_.orgName}; Label="
 Convert the `usedSpace` to GB, round the value to 2 decimal places and pretty-print the column names for a report with aggregation per organization vDC (4 columns):
 
 ```powershell
-New-OrgBackupReport | Select-Object -Property @{Expression={$_.orgName}; Label="Organization"},
+New-OrgBackupReport -AggregateByOrgVdc | Select-Object -Property @{Expression={$_.orgName}; Label="Organization"},
     @{Expression={$_.orgVdcName}; Label="vDC"},
     @{Expression={$_.protectedVms}; Label="Protected VMs"},
     @{Expression={[System.Math]::Round($_.usedSpace / 1GB, 2)}; Label="Used space (GB)"} | Export-Csv -Path $reportPath -NoTypeInformation
