@@ -53,6 +53,7 @@ function New-OrgBackupReport
     }
 
     $orgReports = @{}
+    $knownVmIds = New-Object -TypeName System.Collections.Generic.List[guid]
 
     $vcdOrgItems = Find-VBRvCloudEntity | Where-Object -FilterScript {$_.Type -eq "Organization"}
     foreach ($item in $vcdOrgItems)
@@ -98,7 +99,11 @@ function New-OrgBackupReport
                         }
                         if ($object.Type -eq "VM")
                         {
-                            $orgReports[$vcdOrg.OrgName][$orgVdcName].protectedVms += 1
+                            if ($object.Id -notin $knownVmIds)
+                            {
+                                $orgReports[$vcdOrg.OrgName][$orgVdcName].protectedVms += 1
+                                $knownVmIds.Add($object.Id)
+                            }
                         }
                         $sizePerObjectStorage = ($storages | Where-Object -FilterScript {$_.ObjectId -eq $object.Id}).Stats.BackupSize
                         foreach ($size in $sizePerObjectStorage)
@@ -125,7 +130,14 @@ function New-OrgBackupReport
                             usedSpace = 0
                         }
                     }
-                    $orgReports[$vcdOrg.OrgName].protectedVms += ($backup.GetObjects() | Where-Object -FilterScript {$_.Type -eq "VM"}).Length
+                    foreach ($object in $backup.GetObjects() | Where-Object -FilterScript {$_.Type -eq "VM"})
+                    {
+                        if ($object.Id -notin $knownVmIds)
+                        {
+                            $orgReports[$vcdOrg.OrgName].protectedVms += 1
+                            $knownVmIds.Add($object.Id)
+                        }
+                    }
                     $sizePerStorage = $backup.GetAllStorages().Stats.BackupSize
                     foreach ($size in $sizePerStorage)
                     {
@@ -170,7 +182,11 @@ function New-OrgBackupReport
                     }
                     if ($object.Type -eq "VM")
                     {
-                        $orgReports[$orgName][$orgVdcName].protectedVms += 1
+                        if ($object.Id -notin $knownVmIds)
+                        {
+                            $orgReports[$orgName][$orgVdcName].protectedVms += 1
+                            $knownVmIds.Add($object.Id)
+                        }
                     }
                     $sizePerObjectStorage = ($storages | Where-Object -FilterScript {$_.ObjectId -eq $object.Id}).Stats.BackupSize
                     foreach ($size in $sizePerObjectStorage)
@@ -189,7 +205,11 @@ function New-OrgBackupReport
                     }
                     if ($object.Type -eq "VM")
                     {
-                        $orgReports[$orgName].protectedVms += 1
+                        if ($object.Id -notin $knownVmIds)
+                        {
+                            $orgReports[$orgName].protectedVms += 1
+                            $knownVmIds.Add($object.Id)
+                        }
                     }
                     $sizePerObjectStorage = ($storages | Where-Object -FilterScript {$_.ObjectId -eq $object.Id}).Stats.BackupSize
                     foreach ($size in $sizePerObjectStorage)

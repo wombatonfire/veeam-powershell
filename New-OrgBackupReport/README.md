@@ -4,8 +4,6 @@ The script generates a backup usage report for vCloud Director organizations. Fo
 - The total number of VMs in backups.
 - The total amount of space used on repositories.
 
-Note that `$protectedVms` is a simple sum of all VMs in all backups, so if a particular VM is processed by multiple jobs it will be counted multiple times.
-
 The usage data can be aggregated on the organization level or for individual organization vDCs.
 
 The backup scope of the report is customizable. It can be limited to the self-service backups, created by the organization administrators via self-service backup portal, or it can also include the backups, managed by the provider and created directly on the backup server.
